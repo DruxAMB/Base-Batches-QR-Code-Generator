@@ -1,16 +1,114 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { Card } from "./DemoComponents";
 import { Button } from "@/components/ui/button";
 import { QRCodeSVG, QRCodeCanvas } from "qrcode.react";
 import { motion, AnimatePresence } from "framer-motion";
 
 export function QRCodeGenerator() {
+  // Download QR code as PNG (for both SVG and Canvas)
+  const handleDownload = () => {
+    if (renderer === 'svg' && svgRef.current) {
+      // Convert SVG to PNG
+      const svg = svgRef.current;
+      const serializer = new XMLSerializer();
+      const svgString = serializer.serializeToString(svg);
+      const svgBlob = new Blob([svgString], { type: 'image/svg+xml' });
+      const url = URL.createObjectURL(svgBlob);
+      const img = new window.Image();
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        canvas.width = svg.width.baseVal.value || 180;
+        canvas.height = svg.height.baseVal.value || 180;
+        const ctx = canvas.getContext('2d');
+        if (ctx) {
+          ctx.drawImage(img, 0, 0);
+          canvas.toBlob((blob) => {
+            if (blob) {
+              const a = document.createElement('a');
+              a.href = URL.createObjectURL(blob);
+              a.download = 'qr-code.png';
+              a.click();
+              URL.revokeObjectURL(url);
+            }
+          }, 'image/png');
+        }
+      };
+      img.src = url;
+    } else if (renderer === 'canvas' && canvasRef.current) {
+      const canvas = canvasRef.current;
+      const url = canvas.toDataURL('image/png');
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'qr-code.png';
+      a.click();
+    }
+  };
+
+  // Share QR code using Web Share API or fallback
+  const handleShare = async () => {
+    if (renderer === 'svg' && svgRef.current) {
+      // Convert SVG to PNG
+      const svg = svgRef.current;
+      const serializer = new XMLSerializer();
+      const svgString = serializer.serializeToString(svg);
+      const svgBlob = new Blob([svgString], { type: 'image/svg+xml' });
+      const url = URL.createObjectURL(svgBlob);
+      const img = new window.Image();
+      img.onload = async () => {
+        const canvas = document.createElement('canvas');
+        canvas.width = svg.width.baseVal.value || 180;
+        canvas.height = svg.height.baseVal.value || 180;
+        const ctx = canvas.getContext('2d');
+        if (ctx) {
+          ctx.drawImage(img, 0, 0);
+          canvas.toBlob(async (blob) => {
+            if (blob) {
+              if (navigator.canShare && navigator.canShare({ files: [new File([blob], 'qr-code.png', { type: blob.type })] })) {
+                try {
+                  await navigator.share({
+                    files: [new File([blob], 'qr-code.png', { type: blob.type })],
+                    title: 'QR Code',
+                    text: 'Scan this QR code!',
+                  });
+                } catch {}
+              } else {
+                // fallback: download
+                handleDownload();
+              }
+            }
+          }, 'image/png');
+        }
+      };
+      img.src = url;
+    } else if (renderer === 'canvas' && canvasRef.current) {
+      const canvas = canvasRef.current;
+      canvas.toBlob(async (blob) => {
+        if (blob) {
+          if (navigator.canShare && navigator.canShare({ files: [new File([blob], 'qr-code.png', { type: blob.type })] })) {
+            try {
+              await navigator.share({
+                files: [new File([blob], 'qr-code.png', { type: blob.type })],
+                title: 'QR Code',
+                text: 'Scan this QR code!',
+              });
+            } catch {}
+          } else {
+            // fallback: download
+            handleDownload();
+          }
+        }
+      }, 'image/png');
+    }
+  };
+
   const [input, setInput] = useState("");
   const [qrValue, setQrValue] = useState("");
   const [renderer, setRenderer] = useState<'svg' | 'canvas'>("svg");
   const [loading, setLoading] = useState(false);
+  const svgRef = useRef<SVGSVGElement | null>(null);
+  const canvasRef = useRef<HTMLCanvasElement | null>(null);
 
   const handleGenerate = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -101,9 +199,11 @@ export function QRCodeGenerator() {
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               transition={{ duration: 0.7 }}
+              className="flex flex-col items-center"
             >
               {renderer === 'svg' ? (
                 <QRCodeSVG
+                  ref={svgRef}
                   value={qrValue}
                   title={qrValue}
                   size={180}
@@ -115,6 +215,7 @@ export function QRCodeGenerator() {
                 />
               ) : (
                 <QRCodeCanvas
+                  ref={canvasRef}
                   value={qrValue}
                   title={qrValue}
                   size={180}
@@ -125,6 +226,15 @@ export function QRCodeGenerator() {
                   className="shadow-md rounded-lg border border-[var(--app-card-border)] bg-[var(--app-background)] p-4"
                 />
               )}
+              {/* Download and Share Buttons */}
+              <div className="flex gap-3 mt-4">
+                <Button variant="outline" size="sm" onClick={() => handleDownload()}>
+                  Download
+                </Button>
+                <Button variant="ghost" size="sm" onClick={() => handleShare()}>
+                  Share
+                </Button>
+              </div>
             </motion.div>
           )}
         </AnimatePresence>
