@@ -15,9 +15,9 @@ export function QRCodeGenerator() {
     setQrValue(input);
   };
 
-  // Use Base brand colors
-  const bgColor = "#ffffff";
-  const fgColor = "#0052FF";
+  // Use theme-aware colors for QR background and foreground
+  const bgColor = "var(--app-background)";
+  const fgColor = "var(--app-accent)";
   // Show logo only if value looks like a URL
   const showLogo = /^https?:\/\//.test(qrValue);
   const imageSettings = showLogo
@@ -37,7 +37,7 @@ export function QRCodeGenerator() {
           placeholder="Enter text or URL to encode"
           value={input}
           onChange={e => setInput(e.target.value)}
-          className="border border-[var(--app-card-border)] rounded-lg px-4 py-2 text-[var(--app-foreground)] bg-[var(--app-background)] focus:outline-none focus:ring-2 focus:ring-[#0052FF]"
+          className="border border-[var(--app-card-border)] rounded-lg px-4 py-2 text-[var(--app-foreground)] bg-[var(--app-background)] focus:outline-none focus:ring-2 focus:ring-[var(--app-accent)] placeholder:text-[var(--app-foreground-muted)]"
           required
         />
         <div className="flex gap-2 items-center">
