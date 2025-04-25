@@ -72,9 +72,10 @@ body {
 
 @layer base {
   * {
-    @apply border-border;
+    border-color: var(--app-card-border);
   }
   body {
-    @apply bg-background text-foreground;
+    background: var(--app-background);
+    color: var(--app-foreground);
   }
 }

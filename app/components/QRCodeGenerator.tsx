@@ -30,7 +30,7 @@ export function QRCodeGenerator() {
     : undefined;
 
   return (
-    <Card title="QR Code Generator" className="max-w-lg mx-auto animate-fade-in">
+    <Card title="QR Code Generator" className="max-w-lg mx-auto animate-fade-in text-[var(--app-foreground)]">
       <form onSubmit={handleGenerate} className="flex flex-col gap-4">
         <input
           type="text"

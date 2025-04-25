@@ -43,19 +43,19 @@ export function Button({
 
   const variantClasses = {
     primary:
-      "bg-[var(--app-accent)] hover:bg-[var(--app-accent-hover)] text-[var(--app-background)]",
+      "bg-[var(--app-accent)] hover:bg-[var(--app-accent-hover)] text-[var(--app-foreground)]",
     secondary:
       "bg-[var(--app-gray)] hover:bg-[var(--app-gray-dark)] text-[var(--app-foreground)]",
     outline:
-      "border border-[var(--app-accent)] hover:bg-[var(--app-accent-light)] text-[var(--app-accent)]",
+      "border border-[var(--app-accent)] hover:bg-[var(--app-accent-light)] text-[var(--app-foreground)]",
     ghost:
-      "hover:bg-[var(--app-accent-light)] text-[var(--app-foreground-muted)]",
+      "hover:bg-[var(--app-accent-light)] text-[var(--app-foreground)]",
   };
 
   const sizeClasses = {
     sm: "text-xs px-2.5 py-1.5 rounded-md",
     md: "text-sm px-4 py-2 rounded-lg",
-    lg: "text-base px-6 py-3 rounded-lg",
+    lg: "text-lg px-6 py-3 rounded-lg",
   };
 
   return (
@@ -121,26 +121,26 @@ export function Features({ setActiveTab }: FeaturesProps) {
       <Card title="Key Features">
         <ul className="space-y-3 mb-4">
           <li className="flex items-start">
-            <Icon name="check" className="text-[var(--app-accent)] mt-1 mr-2" />
-            <span className="text-[var(--app-foreground-muted)]">
+            <Icon name="check" className="text-[var(--app-foreground)] mt-1 mr-2" />
+            <span className="text-[var(--app-foreground)]">
               Minimalistic and beautiful UI design
             </span>
           </li>
           <li className="flex items-start">
-            <Icon name="check" className="text-[var(--app-accent)] mt-1 mr-2" />
-            <span className="text-[var(--app-foreground-muted)]">
+            <Icon name="check" className="text-[var(--app-foreground)] mt-1 mr-2" />
+            <span className="text-[var(--app-foreground)]">
               Responsive layout for all devices
             </span>
           </li>
           <li className="flex items-start">
-            <Icon name="check" className="text-[var(--app-accent)] mt-1 mr-2" />
-            <span className="text-[var(--app-foreground-muted)]">
+            <Icon name="check" className="text-[var(--app-foreground)] mt-1 mr-2" />
+            <span className="text-[var(--app-foreground)]">
               Dark mode support
             </span>
           </li>
           <li className="flex items-start">
-            <Icon name="check" className="text-[var(--app-accent)] mt-1 mr-2" />
-            <span className="text-[var(--app-foreground-muted)]">
+            <Icon name="check" className="text-[var(--app-foreground)] mt-1 mr-2" />
+            <span className="text-[var(--app-foreground)]">
               OnchainKit integration
             </span>
           </li>
@@ -161,7 +161,7 @@ export function Home({ setActiveTab }: HomeProps) {
   return (
     <div className="space-y-6 animate-fade-in">
       <Card title="My First Mini App">
-        <p className="text-[var(--app-foreground-muted)] mb-4">
+        <p className="text-[var(--app-foreground)] mb-4">
           This is a minimalistic Mini App built with OnchainKit components.
         </p>
         <Button
@@ -330,7 +330,7 @@ function TodoList() {
             onChange={(e) => setNewTodo(e.target.value)}
             onKeyDown={handleKeyDown}
             placeholder="Add a new task..."
-            className="flex-1 px-3 py-2 bg-[var(--app-card-bg)] border border-[var(--app-card-border)] rounded-lg text-[var(--app-foreground)] placeholder-[var(--app-foreground-muted)] focus:outline-none focus:ring-1 focus:ring-[var(--app-accent)]"
+            className="flex-1 px-3 py-2 bg-[var(--app-card-bg)] border border-[var(--app-card-border)] rounded-lg text-[var(--app-foreground)] placeholder-[var(--app-foreground)] focus:outline-none focus:ring-1 focus:ring-[var(--app-accent)]"
           />
           <Button
             variant="primary"
@@ -353,20 +353,20 @@ function TodoList() {
                   className={`w-5 h-5 rounded-full border flex items-center justify-center ${
                     todo.completed
                       ? "bg-[var(--app-accent)] border-[var(--app-accent)]"
-                      : "border-[var(--app-foreground-muted)] bg-transparent"
+                      : "border-[var(--app-foreground)] bg-transparent"
                   }`}
                 >
                   {todo.completed && (
                     <Icon
                       name="check"
                       size="sm"
-                      className="text-[var(--app-background)]"
+                      className="text-[var(--app-foreground)]"
                     />
                   )}
                 </button>
                 <label
                   htmlFor={`todo-${todo.id}`}
-                  className={`text-[var(--app-foreground-muted)] cursor-pointer ${todo.completed ? "line-through opacity-70" : ""}`}
+                  className={`text-[var(--app-foreground)] cursor-pointer ${todo.completed ? "line-through opacity-70" : ""}`}
                 >
                   {todo.text}
                 </label>
@@ -374,7 +374,7 @@ function TodoList() {
               <button
                 type="button"
                 onClick={() => deleteTodo(todo.id)}
-                className="text-[var(--app-foreground-muted)] hover:text-[var(--app-foreground)]"
+                className="text-[var(--app-foreground)] hover:text-[var(--app-foreground)]"
               >
                 ×
               </button>
@@ -385,7 +385,6 @@ function TodoList() {
     </Card>
   );
 }
-
 
 function TransactionCard() {
   const { address } = useAccount();
@@ -417,13 +416,13 @@ function TransactionCard() {
   return (
     <Card title="Make Your First Transaction">
       <div className="space-y-4">
-        <p className="text-[var(--app-foreground-muted)] mb-4">
+        <p className="text-[var(--app-foreground)] mb-4">
           Experience the power of seamless sponsored transactions with{" "}
           <a
             href="https://onchainkit.xyz"
             target="_blank"
             rel="noopener noreferrer"
-            className="text-[#0052FF] hover:underline"
+            className="text-[var(--app-foreground)] hover:underline"
           >
             OnchainKit
           </a>
@@ -439,7 +438,7 @@ function TransactionCard() {
                 console.error("Transaction failed:", error)
               }
             >
-              <TransactionButton className="text-white text-md" />
+              <TransactionButton className="text-[var(--app-foreground)] text-md" />
               <TransactionStatus>
                 <TransactionStatusAction />
                 <TransactionStatusLabel />
@@ -451,7 +450,7 @@ function TransactionCard() {
               </TransactionToast>
             </Transaction>
           ) : (
-            <p className="text-yellow-400 text-sm text-center mt-2">
+            <p className="text-[var(--app-foreground)] text-sm text-center mt-2">
               Connect your wallet to send a transaction
             </p>
           )}
