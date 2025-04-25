@@ -22,7 +22,7 @@ export function QRCodeGenerator() {
   const showLogo = /^https?:\/\//.test(qrValue);
   const imageSettings = showLogo
     ? {
-        src: "https://static.zpao.com/favicon.png",
+        src: "/Base_Network_Logo.png",
         height: 32,
         width: 32,
         excavate: true,
