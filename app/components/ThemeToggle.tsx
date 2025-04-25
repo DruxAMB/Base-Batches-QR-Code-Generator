@@ -1,6 +1,6 @@
 "use client";
 import { useEffect, useState } from "react";
-import { Button } from "./DemoComponents";
+import { Button } from "@/components/ui/button";
 
 const themes = [
   { key: "light", label: "Light" },
@@ -37,7 +37,7 @@ export function ThemeToggle() {
           key={t.key}
           type="button"
           size="sm"
-          variant={theme === t.key ? "primary" : "outline"}
+          variant={theme === t.key ? "default" : "outline"}
           onClick={() => setTheme(t.key)}
         >
           {t.label}

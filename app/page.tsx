@@ -22,7 +22,7 @@ import { useEffect, useMemo, useState, useCallback } from "react";
 import { Button } from "./components/DemoComponents";
 import { Icon } from "./components/DemoComponents";
 import { QRCodeGenerator } from "./components/QRCodeGenerator";
-import { ThemeToggle } from "./components/ThemeToggle";
+import { ModeToggle } from "./components/ModeToggle";
 
 export default function App() {
   const { setFrameReady, isFrameReady, context } = useMiniKit();
@@ -95,7 +95,7 @@ export default function App() {
         </header>
 
         <main className="flex-1">
-          <ThemeToggle />
+          <ModeToggle />
           <QRCodeGenerator />
         </main>
 

@@ -3,6 +3,7 @@
 import { type ReactNode } from "react";
 import { base } from "wagmi/chains";
 import { MiniKitProvider } from "@coinbase/onchainkit/minikit";
+import { ThemeProvider } from "next-themes";
 
 export function Providers(props: { children: ReactNode }) {
   return (
@@ -18,7 +19,14 @@ export function Providers(props: { children: ReactNode }) {
         },
       }}
     >
-      {props.children}
+      <ThemeProvider
+            attribute="class"
+            defaultTheme="system"
+            enableSystem
+            disableTransitionOnChange
+          >
+        {props.children}
+      </ThemeProvider>
     </MiniKitProvider>
   );
 }

@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { Card } from "./DemoComponents";
-import { Button } from "./DemoComponents";
+import { Button } from "@/components/ui/button";
 import { QRCodeSVG, QRCodeCanvas } from "qrcode.react";
 
 export function QRCodeGenerator() {
@@ -45,7 +45,7 @@ export function QRCodeGenerator() {
           <Button
             type="button"
             size="sm"
-            variant={renderer === 'svg' ? 'primary' : 'outline'}
+            variant={renderer === 'svg' ? 'default' : 'outline'}
             onClick={() => setRenderer('svg')}
             className="px-3"
           >
@@ -54,14 +54,14 @@ export function QRCodeGenerator() {
           <Button
             type="button"
             size="sm"
-            variant={renderer === 'canvas' ? 'primary' : 'outline'}
+            variant={renderer === 'canvas' ? 'default' : 'outline'}
             onClick={() => setRenderer('canvas')}
             className="px-3"
           >
             Canvas
           </Button>
         </div>
-        <Button type="submit" variant="primary" size="md">
+        <Button type="submit" variant="default" size="default">
           Generate QR Code
         </Button>
       </form>
