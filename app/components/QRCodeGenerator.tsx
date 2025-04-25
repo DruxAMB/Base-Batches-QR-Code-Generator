@@ -4,15 +4,21 @@ import { useState } from "react";
 import { Card } from "./DemoComponents";
 import { Button } from "@/components/ui/button";
 import { QRCodeSVG, QRCodeCanvas } from "qrcode.react";
+import { motion, AnimatePresence } from "framer-motion";
 
 export function QRCodeGenerator() {
   const [input, setInput] = useState("");
   const [qrValue, setQrValue] = useState("");
   const [renderer, setRenderer] = useState<'svg' | 'canvas'>("svg");
+  const [loading, setLoading] = useState(false);
 
-  const handleGenerate = (e: React.FormEvent) => {
+  const handleGenerate = async (e: React.FormEvent) => {
     e.preventDefault();
-    setQrValue(input);
+    setLoading(true);
+    setTimeout(() => {
+      setQrValue(input);
+      setLoading(false);
+    }, 3000);
   };
 
   // Use theme-aware colors for QR background and foreground
@@ -31,7 +37,13 @@ export function QRCodeGenerator() {
 
   return (
     <Card title="QR Code Generator" className="max-w-lg mx-auto animate-fade-in text-[var(--app-foreground)]">
-      <form onSubmit={handleGenerate} className="flex flex-col gap-4">
+      <motion.form
+        onSubmit={handleGenerate}
+        className="flex flex-col gap-4"
+        initial={{ y: 60, opacity: 0 }}
+        animate={{ y: 0, opacity: 1 }}
+        transition={{ type: "spring", stiffness: 80, damping: 14 }}
+      >
         <input
           type="text"
           placeholder="Enter text or URL to encode"
@@ -61,36 +73,61 @@ export function QRCodeGenerator() {
             Canvas
           </Button>
         </div>
-        <Button type="submit" variant="default" size="default">
-          Generate QR Code
-        </Button>
-      </form>
-      <div className="flex flex-col items-center mt-6">
-        {qrValue && (
-          renderer === 'svg' ? (
-            <QRCodeSVG
-              value={qrValue}
-              title={qrValue}
-              size={180}
-              bgColor={bgColor}
-              fgColor={fgColor}
-              level="L"
-              imageSettings={imageSettings}
-              className="shadow-md rounded-lg border border-[var(--app-card-border)] bg-[var(--app-background)] p-4"
-            />
+        <Button type="submit" variant="default" size="default" disabled={loading}>
+          {loading ? (
+            <motion.span
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="flex items-center gap-2"
+            >
+              <svg className="animate-spin h-5 w-5 mr-2 text-[var(--app-foreground)]" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path>
+              </svg>
+              Generating...
+            </motion.span>
           ) : (
-            <QRCodeCanvas
-              value={qrValue}
-              title={qrValue}
-              size={180}
-              bgColor={bgColor}
-              fgColor={fgColor}
-              level="L"
-              imageSettings={imageSettings}
-              className="shadow-md rounded-lg border border-[var(--app-card-border)] bg-[var(--app-background)] p-4"
-            />
-          )
-        )}
+            "Generate QR Code"
+          )}
+        </Button>
+      </motion.form>
+      <div className="flex flex-col items-center mt-6 min-h-[200px]">
+        <AnimatePresence>
+          {qrValue && !loading && (
+            <motion.div
+              key="qr"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.7 }}
+            >
+              {renderer === 'svg' ? (
+                <QRCodeSVG
+                  value={qrValue}
+                  title={qrValue}
+                  size={180}
+                  bgColor={bgColor}
+                  fgColor={fgColor}
+                  level="L"
+                  imageSettings={imageSettings}
+                  className="shadow-md rounded-lg border border-[var(--app-card-border)] bg-[var(--app-background)] p-4"
+                />
+              ) : (
+                <QRCodeCanvas
+                  value={qrValue}
+                  title={qrValue}
+                  size={180}
+                  bgColor={bgColor}
+                  fgColor={fgColor}
+                  level="L"
+                  imageSettings={imageSettings}
+                  className="shadow-md rounded-lg border border-[var(--app-card-border)] bg-[var(--app-background)] p-4"
+                />
+              )}
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
     </Card>
   );
