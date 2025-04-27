@@ -39,41 +39,7 @@ export function QRCodeGenerator() {
 
   // Share QR code using Web Share API or fallback
   const handleShare = async () => {
-    if (renderer === 'svg' && svgRef.current) {
-      // Convert SVG to PNG
-      const svg = svgRef.current;
-      const serializer = new XMLSerializer();
-      const svgString = serializer.serializeToString(svg);
-      const svgBlob = new Blob([svgString], { type: 'image/svg+xml' });
-      const url = URL.createObjectURL(svgBlob);
-      const img = new window.Image();
-      img.onload = async () => {
-        const canvas = document.createElement('canvas');
-        canvas.width = svg.width.baseVal.value || 180;
-        canvas.height = svg.height.baseVal.value || 180;
-        const ctx = canvas.getContext('2d');
-        if (ctx) {
-          ctx.drawImage(img, 0, 0);
-          canvas.toBlob(async (blob) => {
-            if (blob) {
-              if (navigator.canShare && navigator.canShare({ files: [new File([blob], 'qr-code.png', { type: blob.type })] })) {
-                try {
-                  await navigator.share({
-                    files: [new File([blob], 'qr-code.png', { type: blob.type })],
-                    title: 'QR Code',
-                    text: 'Scan this QR code!',
-                  });
-                } catch {}
-              } else {
-                // fallback: download
-                handleDownloadPNG();
-              }
-            }
-          }, 'image/png');
-        }
-      };
-      img.src = url;
-    } else if (renderer === 'canvas' && canvasRef.current) {
+    if (canvasRef.current) {
       const canvas = canvasRef.current;
       canvas.toBlob(async (blob) => {
         if (blob) {
@@ -93,6 +59,7 @@ export function QRCodeGenerator() {
       }, 'image/png');
     }
   };
+
 
   const [input, setInput] = useState("");
   const [qrValue, setQrValue] = useState("");
