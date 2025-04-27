@@ -4,6 +4,13 @@ import { useRef, useState } from "react";
 import { Card } from "./DemoComponents";
 import { Button } from "@/components/ui/button";
 import { QRCodeSVG, QRCodeCanvas } from "qrcode.react";
+import {
+  Select,
+  SelectTrigger,
+  SelectValue,
+  SelectContent,
+  SelectItem
+} from "@/components/ui/select";
 import { motion, AnimatePresence } from "framer-motion";
 
 export function QRCodeGenerator() {
@@ -61,7 +68,9 @@ export function QRCodeGenerator() {
   };
 
 
+  const [qrType, setQrType] = useState<'text' | 'email'>('text');
   const [input, setInput] = useState("");
+  const [email, setEmail] = useState("");
   const [qrValue, setQrValue] = useState("");
 
   const [loading, setLoading] = useState(false);
@@ -71,9 +80,15 @@ export function QRCodeGenerator() {
     e.preventDefault();
     setLoading(true);
     setTimeout(() => {
-      setQrValue(input);
+      let value = '';
+      if (qrType === 'email') {
+        value = email ? `mailto:${email}` : '';
+      } else {
+        value = input;
+      }
+      setQrValue(value);
       setLoading(false);
-    }, 3000);
+    }, 1000);
   };
 
   // Use theme-aware colors for QR background and foreground
@@ -99,14 +114,40 @@ export function QRCodeGenerator() {
         animate={{ y: 0, opacity: 1 }}
         transition={{ type: "spring", stiffness: 80, damping: 14 }}
       >
-        <input
-          type="text"
-          placeholder="Enter text or URL to encode"
-          value={input}
-          onChange={e => setInput(e.target.value)}
-          className="border border-[var(--app-card-border)] rounded-lg px-4 py-2 text-[var(--app-foreground)] bg-[var(--app-background)] focus:outline-none focus:ring-2 focus:ring-[var(--app-accent)] placeholder:text-[var(--app-foreground-muted)]"
-          required
-        />
+        <div className="flex gap-2 items-center">
+          <label className="text-xs text-[var(--app-foreground-muted)]">QR Type:</label>
+          <div className="w-32">
+            <Select value={qrType} onValueChange={v => setQrType(v as 'text' | 'email')}>
+              <SelectTrigger>
+                <SelectValue placeholder="Select type" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="text">Text</SelectItem>
+                <SelectItem value="email">Email</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+        {qrType === 'text' && (
+          <input
+            type="text"
+            placeholder="Enter text or URL to encode"
+            value={input}
+            onChange={e => setInput(e.target.value)}
+            className="border border-[var(--app-card-border)] rounded-lg px-4 py-2 text-[var(--app-foreground)] bg-[var(--app-background)] focus:outline-none focus:ring-2 focus:ring-[var(--app-accent)] placeholder:text-[var(--app-foreground-muted)]"
+            required
+          />
+        )}
+        {qrType === 'email' && (
+          <input
+            type="email"
+            placeholder="Enter email address"
+            value={email}
+            onChange={e => setEmail(e.target.value)}
+            className="border border-[var(--app-card-border)] rounded-lg px-4 py-2 text-[var(--app-foreground)] bg-[var(--app-background)] focus:outline-none focus:ring-2 focus:ring-[var(--app-accent)] placeholder:text-[var(--app-foreground-muted)]"
+            required
+          />
+        )}
 
         <Button type="submit" variant="default" size="default" disabled={loading}>
           {loading ? (
