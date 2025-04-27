@@ -20,10 +20,13 @@ export function QRCodeGenerator() {
     }
   };
 
-  // Download SVG using QRCodeSVG
+  // Download SVG by serializing a hidden QRCodeSVG
+  const svgHiddenRef = useRef<SVGSVGElement | null>(null);
   const handleDownloadSVG = () => {
-    // Create an SVG string using QRCodeSVG
-    const svgString = `<svg xmlns='http://www.w3.org/2000/svg' width='180' height='180'><foreignObject width='100%' height='100%'><div xmlns='http://www.w3.org/1999/xhtml'><style>svg{background:#fff}</style>${QRCodeSVG({value: qrValue, size: 180, bgColor: bgColor, fgColor: fgColor, level: "L", imageSettings: imageSettings}).props.children}</div></foreignObject></svg>`;
+    const svg = svgHiddenRef.current;
+    if (!svg) return;
+    const serializer = new XMLSerializer();
+    const svgString = serializer.serializeToString(svg);
     const blob = new Blob([svgString], { type: 'image/svg+xml' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -63,7 +66,7 @@ export function QRCodeGenerator() {
                 } catch {}
               } else {
                 // fallback: download
-                handleDownload();
+                handleDownloadPNG();
               }
             }
           }, 'image/png');
@@ -84,7 +87,7 @@ export function QRCodeGenerator() {
             } catch {}
           } else {
             // fallback: download
-            handleDownload();
+            handleDownloadPNG();
           }
         }
       }, 'image/png');
@@ -179,6 +182,19 @@ export function QRCodeGenerator() {
                 imageSettings={imageSettings}
                 className="shadow-md rounded-lg border border-[var(--app-card-border)] p-4"
               />
+              {/* Hidden SVG for download */}
+              <div style={{position: 'absolute', left: '-9999px', top: 0, width: 0, height: 0, overflow: 'hidden'}} aria-hidden="true">
+                <QRCodeSVG
+                  ref={svgHiddenRef}
+                  value={qrValue}
+                  title={qrValue}
+                  size={180}
+                  bgColor={bgColor}
+                  fgColor={fgColor}
+                  level="L"
+                  imageSettings={imageSettings}
+                />
+              </div>
               {/* Download and Share Buttons */}
               <div className="flex gap-3 mt-4">
                 <Button variant="outline" size="sm" onClick={() => handleDownloadPNG()}>
