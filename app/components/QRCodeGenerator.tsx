@@ -8,35 +8,9 @@ import { motion, AnimatePresence } from "framer-motion";
 
 export function QRCodeGenerator() {
   // Download QR code as PNG (for both SVG and Canvas)
-  const handleDownload = () => {
-    if (renderer === 'svg' && svgRef.current) {
-      // Convert SVG to PNG
-      const svg = svgRef.current;
-      const serializer = new XMLSerializer();
-      const svgString = serializer.serializeToString(svg);
-      const svgBlob = new Blob([svgString], { type: 'image/svg+xml' });
-      const url = URL.createObjectURL(svgBlob);
-      const img = new window.Image();
-      img.onload = () => {
-        const canvas = document.createElement('canvas');
-        canvas.width = svg.width.baseVal.value || 180;
-        canvas.height = svg.height.baseVal.value || 180;
-        const ctx = canvas.getContext('2d');
-        if (ctx) {
-          ctx.drawImage(img, 0, 0);
-          canvas.toBlob((blob) => {
-            if (blob) {
-              const a = document.createElement('a');
-              a.href = URL.createObjectURL(blob);
-              a.download = 'qr-code.png';
-              a.click();
-              URL.revokeObjectURL(url);
-            }
-          }, 'image/png');
-        }
-      };
-      img.src = url;
-    } else if (renderer === 'canvas' && canvasRef.current) {
+  // Download PNG from canvas
+  const handleDownloadPNG = () => {
+    if (canvasRef.current) {
       const canvas = canvasRef.current;
       const url = canvas.toDataURL('image/png');
       const a = document.createElement('a');
@@ -45,6 +19,20 @@ export function QRCodeGenerator() {
       a.click();
     }
   };
+
+  // Download SVG using QRCodeSVG
+  const handleDownloadSVG = () => {
+    // Create an SVG string using QRCodeSVG
+    const svgString = `<svg xmlns='http://www.w3.org/2000/svg' width='180' height='180'><foreignObject width='100%' height='100%'><div xmlns='http://www.w3.org/1999/xhtml'><style>svg{background:#fff}</style>${QRCodeSVG({value: qrValue, size: 180, bgColor: bgColor, fgColor: fgColor, level: "L", imageSettings: imageSettings}).props.children}</div></foreignObject></svg>`;
+    const blob = new Blob([svgString], { type: 'image/svg+xml' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'qr-code.svg';
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  };
+
 
   // Share QR code using Web Share API or fallback
   const handleShare = async () => {
@@ -105,9 +93,8 @@ export function QRCodeGenerator() {
 
   const [input, setInput] = useState("");
   const [qrValue, setQrValue] = useState("");
-  const [renderer, setRenderer] = useState<'svg' | 'canvas'>("svg");
+
   const [loading, setLoading] = useState(false);
-  const svgRef = useRef<SVGSVGElement | null>(null);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
 
   const handleGenerate = async (e: React.FormEvent) => {
@@ -120,8 +107,8 @@ export function QRCodeGenerator() {
   };
 
   // Use theme-aware colors for QR background and foreground
-  const bgColor = "var(--app-background)";
-  const fgColor = "var(--app-accent)";
+  const bgColor = "#fff";
+  const fgColor = "#0052ff";
   // Show logo only if value looks like a URL
   const showLogo = /^https?:\/\//.test(qrValue);
   const imageSettings = showLogo
@@ -150,27 +137,7 @@ export function QRCodeGenerator() {
           className="border border-[var(--app-card-border)] rounded-lg px-4 py-2 text-[var(--app-foreground)] bg-[var(--app-background)] focus:outline-none focus:ring-2 focus:ring-[var(--app-accent)] placeholder:text-[var(--app-foreground-muted)]"
           required
         />
-        <div className="flex gap-2 items-center">
-          <label className="text-xs text-[var(--app-foreground-muted)]">Renderer:</label>
-          <Button
-            type="button"
-            size="sm"
-            variant={renderer === 'svg' ? 'default' : 'outline'}
-            onClick={() => setRenderer('svg')}
-            className="px-3"
-          >
-            SVG
-          </Button>
-          <Button
-            type="button"
-            size="sm"
-            variant={renderer === 'canvas' ? 'default' : 'outline'}
-            onClick={() => setRenderer('canvas')}
-            className="px-3"
-          >
-            Canvas
-          </Button>
-        </div>
+
         <Button type="submit" variant="default" size="default" disabled={loading}>
           {loading ? (
             <motion.span
@@ -201,35 +168,24 @@ export function QRCodeGenerator() {
               transition={{ duration: 0.7 }}
               className="flex flex-col items-center"
             >
-              {renderer === 'svg' ? (
-                <QRCodeSVG
-                  ref={svgRef}
-                  value={qrValue}
-                  title={qrValue}
-                  size={180}
-                  bgColor={bgColor}
-                  fgColor={fgColor}
-                  level="L"
-                  imageSettings={imageSettings}
-                  className="shadow-md rounded-lg border border-[var(--app-card-border)] bg-[var(--app-background)] p-4"
-                />
-              ) : (
-                <QRCodeCanvas
-                  ref={canvasRef}
-                  value={qrValue}
-                  title={qrValue}
-                  size={180}
-                  bgColor={bgColor}
-                  fgColor={fgColor}
-                  level="L"
-                  imageSettings={imageSettings}
-                  className="shadow-md rounded-lg border border-[var(--app-card-border)] bg-[var(--app-background)] p-4"
-                />
-              )}
+              <QRCodeCanvas
+                ref={canvasRef}
+                value={qrValue}
+                title={qrValue}
+                size={180}
+                bgColor={bgColor}
+                fgColor={fgColor}
+                level="L"
+                imageSettings={imageSettings}
+                className="shadow-md rounded-lg border border-[var(--app-card-border)] p-4"
+              />
               {/* Download and Share Buttons */}
               <div className="flex gap-3 mt-4">
-                <Button variant="outline" size="sm" onClick={() => handleDownload()}>
-                  Download
+                <Button variant="outline" size="sm" onClick={() => handleDownloadPNG()}>
+                  Download PNG
+                </Button>
+                <Button variant="outline" size="sm" onClick={() => handleDownloadSVG()}>
+                  Download SVG
                 </Button>
                 <Button variant="ghost" size="sm" onClick={() => handleShare()}>
                   Share

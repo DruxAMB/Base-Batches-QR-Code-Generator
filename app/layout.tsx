@@ -3,6 +3,13 @@ import '@coinbase/onchainkit/styles.css';
 import type { Metadata, Viewport } from 'next';
 import './globals.css';
 import { Providers } from './providers';
+import { DM_Sans } from 'next/font/google';
+
+const dmSans = DM_Sans({
+  subsets: ['latin'],
+  weight: ['400', '500', '700'],
+  variable: '--font-dm-sans',
+});
 
 
 export const viewport: Viewport = {
@@ -41,8 +48,8 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
-      <body className="bg-background">
+    <html lang="en" className={dmSans.variable}>
+      <body className="bg-background font-sans">
         <Providers>{children}</Providers>
       </body>
     </html>
