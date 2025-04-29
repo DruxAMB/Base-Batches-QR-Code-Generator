@@ -15,7 +15,8 @@ export function PremiumFeatures() {
     handleMint, 
     isMinting,
     mintSuccess,
-    openConnectModal
+    openConnectModal,
+    errorMessage
   } = usePremiumNFT();
 
   // Premium features UI
@@ -102,7 +103,10 @@ export function PremiumFeatures() {
         </div>
       ) : (
         <Button 
-          onClick={handleMint} 
+          onClick={() => {
+            console.log('Mint button clicked');
+            handleMint();
+          }} 
           disabled={isMinting}
           className="bg-[var(--app-accent)] hover:bg-[var(--app-accent-hover)] text-white"
         >
@@ -113,6 +117,12 @@ export function PremiumFeatures() {
       {mintSuccess && (
         <p className="text-green-500 mt-2 text-sm">
           Success! Your premium access is now active.
+        </p>
+      )}
+      
+      {errorMessage && (
+        <p className="text-red-500 mt-2 text-sm">
+          {errorMessage}
         </p>
       )}
       
