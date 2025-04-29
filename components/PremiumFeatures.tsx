@@ -16,7 +16,7 @@ export function PremiumFeatures() {
     isMinting,
     mintSuccess,
     openConnectModal,
-    errorMessage
+    isWrongNetwork
   } = usePremiumNFT();
 
   // Premium features UI
@@ -101,12 +101,19 @@ export function PremiumFeatures() {
             Connect Wallet
           </Button>
         </div>
+      ) : isWrongNetwork ? (
+        <div className="flex flex-col items-center gap-3">
+          <p className="text-sm text-amber-500 font-medium">Please switch to Base Sepolia network</p>
+          <Button 
+            onClick={handleMint} 
+            className="bg-amber-500 hover:bg-amber-600 text-white"
+          >
+            Switch Network
+          </Button>
+        </div>
       ) : (
         <Button 
-          onClick={() => {
-            console.log('Mint button clicked');
-            handleMint();
-          }} 
+          onClick={handleMint} 
           disabled={isMinting}
           className="bg-[var(--app-accent)] hover:bg-[var(--app-accent-hover)] text-white"
         >
@@ -117,12 +124,6 @@ export function PremiumFeatures() {
       {mintSuccess && (
         <p className="text-green-500 mt-2 text-sm">
           Success! Your premium access is now active.
-        </p>
-      )}
-      
-      {errorMessage && (
-        <p className="text-red-500 mt-2 text-sm">
-          {errorMessage}
         </p>
       )}
       
