@@ -12,8 +12,12 @@ import {
   SelectItem
 } from "@/components/ui/select";
 import { motion, AnimatePresence } from "framer-motion";
+import { PremiumFeatures } from "@/components/PremiumFeatures";
+import { usePremiumNFT } from "@/hooks/usePremiumNFT";
 
 export function QRCodeGenerator() {
+  // Check premium status with default values to prevent rendering errors
+  const { isPremium = false, daysRemaining = 0 } = usePremiumNFT();
   // Download QR code as PNG (for both SVG and Canvas)
   // Download PNG from canvas
   const handleDownloadPNG = () => {
@@ -106,7 +110,18 @@ export function QRCodeGenerator() {
     : undefined;
 
   return (
-    <Card title="QR Code Generator" className="max-w-lg mx-auto animate-fade-in text-[var(--app-foreground)]">
+    <Card 
+      title={
+        <div className="flex items-center gap-2">
+          <span>QR Code Generator</span>
+          {isPremium && daysRemaining !== null && (
+            <span className="text-xs px-2 py-0.5 bg-[var(--app-accent)] text-white rounded-full">
+              Premium ({daysRemaining}d)
+            </span>
+          )}
+        </div>
+      } 
+      className="max-w-lg mx-auto animate-fade-in text-[var(--app-foreground)]">
       <motion.form
         onSubmit={handleGenerate}
         className="flex flex-col gap-4"
@@ -219,6 +234,9 @@ export function QRCodeGenerator() {
           )}
         </AnimatePresence>
       </div>
+      
+      {/* Premium Features */}
+      <PremiumFeatures />
     </Card>
   );
 }

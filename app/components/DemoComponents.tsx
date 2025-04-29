@@ -72,7 +72,7 @@ export function Button({
 }
 
 type CardProps = {
-  title?: string;
+  title?: ReactNode; // Changed from string to ReactNode to accept JSX elements
   children: ReactNode;
   className?: string;
   onClick?: () => void;
