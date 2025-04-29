@@ -117,7 +117,7 @@ export function PremiumFeatures() {
           disabled={isMinting}
           className="bg-[var(--app-accent)] hover:bg-[var(--app-accent-hover)] text-white"
         >
-          {isMinting ? "Minting..." : `Mint Premium NFT (${mintPrice} ETH)`}
+          {isMinting ? "Minting..." : `Go Pro (${mintPrice} ETH)`}
         </Button>
       )}
       
