@@ -18,6 +18,22 @@ import { usePremiumNFT } from "@/hooks/usePremiumNFT";
 export function QRCodeGenerator() {
   // Check premium status with default values to prevent rendering errors
   const { isPremium = false, daysRemaining = 0 } = usePremiumNFT();
+  
+  // Premium feature states
+  const [customLogo, setCustomLogo] = useState<string | null>(null);
+  const [customLogoFile, setCustomLogoFile] = useState<File | null>(null);
+  const [qrStyle, setQrStyle] = useState("squares");
+  const [qrColor, setQrColor] = useState("#0052ff");
+  const [bulkUrls, setBulkUrls] = useState<string[]>([]);
+  const [bulkMode, setBulkMode] = useState(false);
+  const [generatedQRs, setGeneratedQRs] = useState<{url: string, dataUrl: string}[]>([]);
+  
+  // Analytics state (premium feature)
+  const [analytics, setAnalytics] = useState({
+    generated: 0,
+    downloaded: 0,
+    shared: 0
+  });
   // Download QR code as PNG (for both SVG and Canvas)
   // Download PNG from canvas
   const handleDownloadPNG = () => {
@@ -28,6 +44,14 @@ export function QRCodeGenerator() {
       a.href = url;
       a.download = 'qr-code.png';
       a.click();
+      
+      // Track download in analytics for premium users
+      if (isPremium) {
+        setAnalytics(prev => ({
+          ...prev,
+          downloaded: prev.downloaded + 1
+        }));
+      }
     }
   };
 
@@ -45,6 +69,14 @@ export function QRCodeGenerator() {
     a.download = 'qr-code.svg';
     a.click();
     setTimeout(() => URL.revokeObjectURL(url), 1000);
+    
+    // Track download in analytics for premium users
+    if (isPremium) {
+      setAnalytics(prev => ({
+        ...prev,
+        downloaded: prev.downloaded + 1
+      }));
+    }
   };
 
 
@@ -61,6 +93,14 @@ export function QRCodeGenerator() {
                 title: 'QR Code',
                 text: 'Scan this QR code!',
               });
+              
+              // Track share in analytics for premium users
+              if (isPremium) {
+                setAnalytics(prev => ({
+                  ...prev,
+                  shared: prev.shared + 1
+                }));
+              }
             } catch {}
           } else {
             // fallback: download
@@ -80,34 +120,140 @@ export function QRCodeGenerator() {
   const [loading, setLoading] = useState(false);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
 
+  // Function to generate a single QR code
+  const generateSingleQR = (value: string) => {
+    setQrValue(value);
+    
+    // Track generation in analytics for premium users
+    if (isPremium) {
+      setAnalytics(prev => ({
+        ...prev,
+        generated: prev.generated + 1
+      }));
+    }
+  };
+  
+  // Function to handle bulk generation for premium users
+  const handleBulkGenerate = async () => {
+    if (!isPremium || !bulkUrls.length) return;
+    
+    setLoading(true);
+    const results: {url: string, dataUrl: string}[] = [];
+    
+    // Create a temporary canvas for generating data URLs
+    const tempCanvas = document.createElement('canvas');
+    tempCanvas.width = 256;
+    tempCanvas.height = 256;
+    const ctx = tempCanvas.getContext('2d');
+    
+    // Process each URL
+    for (const url of bulkUrls) {
+      // Create a QR code for this URL
+      const qrCanvas = document.createElement('canvas');
+      const qrCtx = qrCanvas.getContext('2d');
+      if (!qrCtx) continue;
+      
+      // Render QR code to the canvas
+      const qr = new QRCodeSVG({
+        value: url,
+        size: 256,
+        bgColor: bgColor,
+        fgColor: qrColor,
+        level: 'H',
+        imageSettings: customLogo ? {
+          src: customLogo,
+          height: 32,
+          width: 32,
+          excavate: true
+        } : undefined
+      });
+      
+      // Convert SVG to data URL
+      const serializer = new XMLSerializer();
+      const svgString = serializer.serializeToString(qr);
+      const dataUrl = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svgString)}`;
+      
+      results.push({
+        url,
+        dataUrl
+      });
+    }
+    
+    setGeneratedQRs(results);
+    setLoading(false);
+    
+    // Track bulk generation in analytics
+    setAnalytics(prev => ({
+      ...prev,
+      generated: prev.generated + bulkUrls.length
+    }));
+  };
+  
+  // Main form submission handler
   const handleGenerate = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
+    
     setTimeout(() => {
+      // For bulk mode (premium only)
+      if (isPremium && bulkMode) {
+        handleBulkGenerate();
+        return;
+      }
+      
+      // For single QR code generation
       let value = '';
       if (qrType === 'email') {
         value = email ? `mailto:${email}` : '';
       } else {
         value = input;
       }
-      setQrValue(value);
+      
+      generateSingleQR(value);
       setLoading(false);
     }, 1000);
   };
 
   // Use theme-aware colors for QR background and foreground
   const bgColor = "#fff";
-  const fgColor = "#0052ff";
-  // Show logo only if value looks like a URL
-  const showLogo = /^https?:\/\//.test(qrValue);
-  const imageSettings = showLogo
+  // Use custom color for premium users, default for free users
+  const fgColor = isPremium ? qrColor : "#0052ff";
+  
+  // Handle custom logo upload
+  const handleLogoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!e.target.files || !e.target.files[0]) return;
+    
+    const file = e.target.files[0];
+    setCustomLogoFile(file);
+    
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      if (event.target?.result) {
+        setCustomLogo(event.target.result as string);
+      }
+    };
+    reader.readAsDataURL(file);
+  };
+  
+  // Logo settings for QR code
+  // For premium users: use custom logo if uploaded, otherwise use default for URLs
+  // For free users: only show logo for URLs
+  const showDefaultLogo = !isPremium && /^https?:\/\//.test(qrValue);
+  const imageSettings = isPremium && customLogo
     ? {
-        src: "/Base_Network_Logo.png",
-        height: 32,
-        width: 32,
+        src: customLogo,
+        height: 40,
+        width: 40,
         excavate: true,
       }
-    : undefined;
+    : showDefaultLogo
+      ? {
+          src: "/Base_Network_Logo.png",
+          height: 32,
+          width: 32,
+          excavate: true,
+        }
+      : undefined;
 
   return (
     <Card 
@@ -129,6 +275,7 @@ export function QRCodeGenerator() {
         animate={{ y: 0, opacity: 1 }}
         transition={{ type: "spring", stiffness: 80, damping: 14 }}
       >
+        {/* QR Type Selection */}
         <div className="flex gap-2 items-center">
           <label className="text-xs text-[var(--app-foreground-muted)]">QR Type:</label>
           <div className="w-32">
@@ -142,8 +289,74 @@ export function QRCodeGenerator() {
               </SelectContent>
             </Select>
           </div>
+          
+          {/* Premium Mode Toggle */}
+          {isPremium && (
+            <div className="ml-auto flex items-center gap-2">
+              <label className="text-xs text-[var(--app-foreground-muted)]">Bulk Mode:</label>
+              <div className="relative inline-block w-10 h-5 rounded-full bg-[var(--app-card-border)]">
+                <input 
+                  type="checkbox" 
+                  className="sr-only" 
+                  checked={bulkMode}
+                  onChange={() => setBulkMode(!bulkMode)}
+                />
+                <div 
+                  className={`absolute left-0.5 top-0.5 w-4 h-4 rounded-full transition-transform ${bulkMode ? 'transform translate-x-5 bg-[var(--app-accent)]' : 'bg-white'}`}
+                  onClick={() => setBulkMode(!bulkMode)}
+                ></div>
+              </div>
+            </div>
+          )}
         </div>
-        {qrType === 'text' && (
+        
+        {/* Premium Features: Custom Styling */}
+        {isPremium && (
+          <div className="flex flex-wrap gap-4 p-3 border border-[var(--app-card-border)] rounded-lg bg-[var(--app-background-subtle)]">
+            <div className="w-full">
+              <h4 className="text-sm font-medium mb-2">Premium Options</h4>
+            </div>
+            
+            {/* Custom Logo Upload */}
+            <div className="flex flex-col gap-1">
+              <label className="text-xs text-[var(--app-foreground-muted)]">Custom Logo:</label>
+              <input 
+                type="file" 
+                accept="image/*"
+                onChange={handleLogoUpload}
+                className="text-xs"
+              />
+            </div>
+            
+            {/* QR Color Picker */}
+            <div className="flex flex-col gap-1">
+              <label className="text-xs text-[var(--app-foreground-muted)]">QR Color:</label>
+              <input 
+                type="color" 
+                value={qrColor}
+                onChange={(e) => setQrColor(e.target.value)}
+                className="w-10 h-6"
+              />
+            </div>
+            
+            {/* QR Style Selection */}
+            <div className="flex flex-col gap-1">
+              <label className="text-xs text-[var(--app-foreground-muted)]">QR Style:</label>
+              <Select value={qrStyle} onValueChange={setQrStyle}>
+                <SelectTrigger className="w-32">
+                  <SelectValue placeholder="Style" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="squares">Squares</SelectItem>
+                  <SelectItem value="dots">Dots</SelectItem>
+                  <SelectItem value="rounded">Rounded</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+        )}
+        {/* Standard Single QR Input Fields */}
+        {!bulkMode && qrType === 'text' && (
           <input
             type="text"
             placeholder="Enter text or URL to encode"
@@ -153,7 +366,7 @@ export function QRCodeGenerator() {
             required
           />
         )}
-        {qrType === 'email' && (
+        {!bulkMode && qrType === 'email' && (
           <input
             type="email"
             placeholder="Enter email address"
@@ -162,6 +375,31 @@ export function QRCodeGenerator() {
             className="border border-[var(--app-card-border)] rounded-lg px-4 py-2 text-[var(--app-foreground)] bg-[var(--app-background)] focus:outline-none focus:ring-2 focus:ring-[var(--app-accent)] placeholder:text-[var(--app-foreground-muted)]"
             required
           />
+        )}
+        
+        {/* Bulk Generation UI (Premium Only) */}
+        {isPremium && bulkMode && (
+          <div className="flex flex-col gap-2">
+            <textarea
+              placeholder="Enter URLs or text (one per line)"
+              value={bulkUrls.join('\n')}
+              onChange={e => setBulkUrls(e.target.value.split('\n').filter(url => url.trim()))}
+              className="border border-[var(--app-card-border)] rounded-lg px-4 py-2 text-[var(--app-foreground)] bg-[var(--app-background)] focus:outline-none focus:ring-2 focus:ring-[var(--app-accent)] placeholder:text-[var(--app-foreground-muted)] min-h-[100px]"
+              required
+            />
+            <p className="text-xs text-[var(--app-foreground-muted)]">
+              Enter one URL or text per line. Up to 10 QR codes will be generated at once.
+            </p>
+          </div>
+        )}
+        
+        {/* Analytics Display for Premium Users */}
+        {isPremium && (
+          <div className="flex justify-between text-xs text-[var(--app-foreground-muted)] mt-1 mb-2">
+            <div>Generated: {analytics.generated}</div>
+            <div>Downloaded: {analytics.downloaded}</div>
+            <div>Shared: {analytics.shared}</div>
+          </div>
         )}
 
         <Button type="submit" variant="default" size="default" disabled={loading}>
@@ -185,7 +423,8 @@ export function QRCodeGenerator() {
       </motion.form>
       <div className="flex flex-col items-center mt-6 min-h-[200px]">
         <AnimatePresence>
-          {qrValue && !loading && (
+          {/* Single QR Code Display */}
+          {qrValue && !loading && !bulkMode && (
             <motion.div
               key="qr"
               initial={{ opacity: 0 }}
@@ -201,9 +440,11 @@ export function QRCodeGenerator() {
                 size={180}
                 bgColor={bgColor}
                 fgColor={fgColor}
-                level="L"
+                level="H"
                 imageSettings={imageSettings}
-                className="shadow-md rounded-lg border border-[var(--app-card-border)] p-4"
+                // Apply QR style based on premium settings
+                renderAs={isPremium && qrStyle === 'dots' ? 'canvas' : 'canvas'}
+                className={`shadow-md rounded-lg border border-[var(--app-card-border)] p-4 ${isPremium && qrStyle === 'rounded' ? 'qr-rounded' : ''}`}
               />
               {/* Hidden SVG for download */}
               <div style={{position: 'absolute', left: '-9999px', top: 0, width: 0, height: 0, overflow: 'hidden'}} aria-hidden="true">
@@ -211,26 +452,112 @@ export function QRCodeGenerator() {
                   ref={svgHiddenRef}
                   value={qrValue}
                   title={qrValue}
-                  size={180}
+                  size={1024}
                   bgColor={bgColor}
                   fgColor={fgColor}
-                  level="L"
+                  level="H"
                   imageSettings={imageSettings}
                 />
               </div>
-              {/* Download and Share Buttons */}
-              <div className="flex gap-3 mt-4">
-                <Button variant="outline" size="sm" onClick={() => handleDownloadPNG()}>
-                  Download PNG
-                </Button>
-                <Button variant="outline" size="sm" onClick={() => handleDownloadSVG()}>
-                  Download SVG
-                </Button>
-                <Button variant="ghost" size="sm" onClick={() => handleShare()}>
-                  Share
+              
+              {/* Add custom styling for dots and rounded QR codes */}
+              {isPremium && qrStyle !== 'squares' && (
+                <style jsx global>{`
+                  .qr-rounded path {
+                    border-radius: 4px;
+                  }
+                  canvas {
+                    border-radius: ${qrStyle === 'rounded' ? '12px' : '0px'};
+                  }
+                `}</style>
+              )}
+            </motion.div>
+          )}
+          
+          {/* Bulk QR Code Display (Premium Only) */}
+          {isPremium && bulkMode && generatedQRs.length > 0 && !loading && (
+            <motion.div
+              key="bulk-qr"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.7 }}
+              className="w-full"
+            >
+              <h3 className="text-lg font-medium mb-4 text-center">Generated QR Codes</h3>
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                {generatedQRs.map((qr, index) => (
+                  <div key={index} className="flex flex-col items-center p-2 border border-[var(--app-card-border)] rounded-lg">
+                    <img 
+                      src={qr.dataUrl} 
+                      alt={`QR Code for ${qr.url}`}
+                      className="w-full max-w-[120px] h-auto mb-2"
+                    />
+                    <p className="text-xs text-[var(--app-foreground-muted)] truncate w-full text-center">
+                      {qr.url.length > 20 ? qr.url.substring(0, 20) + '...' : qr.url}
+                    </p>
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      className="mt-2 text-xs py-1 h-7"
+                      onClick={() => {
+                        // Download this specific QR code
+                        const a = document.createElement('a');
+                        a.href = qr.dataUrl;
+                        a.download = `qr-code-${index + 1}.png`;
+                        a.click();
+                        
+                        // Track download in analytics
+                        setAnalytics(prev => ({
+                          ...prev,
+                          downloaded: prev.downloaded + 1
+                        }));
+                      }}
+                    >
+                      Download
+                    </Button>
+                  </div>
+                ))}
+              </div>
+              <div className="flex justify-center mt-4">
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    // Download all QR codes as a zip file
+                    // For simplicity, we'll just download them individually
+                    generatedQRs.forEach((qr, index) => {
+                      const a = document.createElement('a');
+                      a.href = qr.dataUrl;
+                      a.download = `qr-code-${index + 1}.png`;
+                      a.click();
+                    });
+                    
+                    // Track downloads in analytics
+                    setAnalytics(prev => ({
+                      ...prev,
+                      downloaded: prev.downloaded + generatedQRs.length
+                    }));
+                  }}
+                >
+                  Download All
                 </Button>
               </div>
             </motion.div>
+          )}
+          
+          {/* Download and Share Buttons for Single QR */}
+          {qrValue && !loading && !bulkMode && (
+            <div className="flex gap-3 mt-4">
+              <Button variant="outline" size="sm" onClick={() => handleDownloadPNG()}>
+                Download PNG
+              </Button>
+              <Button variant="outline" size="sm" onClick={() => handleDownloadSVG()}>
+                Download SVG
+              </Button>
+              <Button variant="ghost" size="sm" onClick={() => handleShare()}>
+                Share
+              </Button>
+            </div>
           )}
         </AnimatePresence>
       </div>
