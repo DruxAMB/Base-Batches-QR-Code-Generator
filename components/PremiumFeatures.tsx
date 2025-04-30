@@ -13,7 +13,6 @@ export function PremiumFeatures() {
     isPremium, 
     expiryDate, 
     daysRemaining, 
-    mintPrice: originalMintPrice,
     checkPremiumStatus
   } = usePremiumNFT();
   
