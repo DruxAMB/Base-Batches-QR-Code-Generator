@@ -14,6 +14,7 @@ import {
 import { motion, AnimatePresence } from "framer-motion";
 import { PremiumFeatures } from "@/components/PremiumFeatures";
 import { usePremiumNFT } from "@/hooks/usePremiumNFT";
+import Image from "next/image";
 
 export function QRCodeGenerator() {
   // Check premium status with default values to prevent rendering errors
@@ -21,7 +22,7 @@ export function QRCodeGenerator() {
   
   // Premium feature states
   const [customLogo, setCustomLogo] = useState<string | null>(null);
-  const [customLogoFile, setCustomLogoFile] = useState<File | null>(null);
+  // We don't need to track the File object separately since we only use the data URL
   const [qrStyle, setQrStyle] = useState("squares");
   const [qrColor, setQrColor] = useState("#0052ff");
   const [bulkUrls, setBulkUrls] = useState<string[]>([]);
@@ -226,8 +227,8 @@ export function QRCodeGenerator() {
     if (!e.target.files || !e.target.files[0]) return;
     
     const file = e.target.files[0];
-    setCustomLogoFile(file);
     
+    // Convert file to data URL for display and use in QR code
     const reader = new FileReader();
     reader.onload = (event) => {
       if (event.target?.result) {
@@ -506,9 +507,11 @@ export function QRCodeGenerator() {
               <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
                 {generatedQRs.map((qr, index) => (
                   <div key={index} className="flex flex-col items-center p-2 border border-[var(--app-card-border)] rounded-lg">
-                    <img 
+                    <Image 
                       src={qr.dataUrl} 
                       alt={`QR Code for ${qr.url}`}
+                      height={120}
+                      width={120}
                       className="w-full max-w-[120px] h-auto mb-2"
                     />
                     <p className="text-xs text-[var(--app-foreground-muted)] truncate w-full text-center">
