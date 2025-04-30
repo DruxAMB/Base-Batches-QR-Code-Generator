@@ -21,10 +21,12 @@ module.exports = {
     },
     // Base mainnet
     base: {
-      url: "https://mainnet.base.org",
+      // Public RPC URL that doesn't require API key
+      url: "https://base.publicnode.com",
       accounts: [PRIVATE_KEY],
       chainId: 8453,
       gasPrice: 1000000000, // 1 gwei
+      timeout: 60000, // 60 seconds timeout for network requests
     },
     // Local hardhat network
     hardhat: {

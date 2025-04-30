@@ -6,7 +6,7 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 
 contract InstantQRPremium is ERC721URIStorage, Ownable {
     uint256 public tokenCounter;
-    uint256 public mintPrice = 0.01 ether; // Can be adjusted by owner
+    uint256 public mintPrice = 0.001 ether; // Reduced price for mainnet deployment
     uint256 public constant PREMIUM_DURATION = 14 days;
     
     // Default token URI with the provided image
