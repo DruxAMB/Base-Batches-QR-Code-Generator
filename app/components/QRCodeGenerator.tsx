@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useRef, useState, useEffect } from "react";
 import { Card } from "./DemoComponents";
 import { Button } from "@/components/ui/button";
 import { QRCodeSVG, QRCodeCanvas } from "qrcode.react";
@@ -28,30 +28,61 @@ export function QRCodeGenerator() {
   const [bulkMode, setBulkMode] = useState(false);
   const [generatedQRs, setGeneratedQRs] = useState<{url: string, dataUrl: string}[]>([]);
   
-  // Analytics state (premium feature)
-  const [analytics, setAnalytics] = useState({
+  // Analytics state for premium users
+  const [analytics, setAnalytics] = useState<{
+    generated: number;
+    downloaded: number;
+    shared: number;
+  }>({
     generated: 0,
     downloaded: 0,
-    shared: 0
+    shared: 0,
   });
+  
+  // Load analytics from localStorage on component mount
+  useEffect(() => {
+    if (isPremium) {
+      const savedAnalytics = localStorage.getItem('qr-analytics');
+      if (savedAnalytics) {
+        try {
+          setAnalytics(JSON.parse(savedAnalytics));
+        } catch (error) {
+          console.error('Error parsing analytics from localStorage:', error);
+        }
+      }
+    }
+  }, [isPremium]);
+  
+  // Save analytics to localStorage whenever they change
+  useEffect(() => {
+    if (isPremium) {
+      localStorage.setItem('qr-analytics', JSON.stringify(analytics));
+    }
+  }, [analytics, isPremium]);
+  
+  // Helper function to update analytics
+  const updateAnalytics = (key: 'generated' | 'downloaded' | 'shared', increment: number = 1) => {
+    if (isPremium) {
+      setAnalytics(prev => ({
+        ...prev,
+        [key]: prev[key] + increment
+      }));
+    }
+  };
+
   // Download QR code as PNG (for both SVG and Canvas)
   // Download PNG from canvas
   const handleDownloadPNG = () => {
-    if (canvasRef.current) {
+    if (canvasRef.current && qrValue) {
       const canvas = canvasRef.current;
-      const url = canvas.toDataURL('image/png');
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = 'qr-code.png';
-      a.click();
+      const url = canvas.toDataURL("image/png");
+      const link = document.createElement("a");
+      link.download = "qrcode.png";
+      link.href = url;
+      link.click();
       
-      // Track download in analytics for premium users
-      if (isPremium) {
-        setAnalytics(prev => ({
-          ...prev,
-          downloaded: prev.downloaded + 1
-        }));
-      }
+      // Track download in analytics
+      updateAnalytics('downloaded');
     }
   };
 
@@ -70,13 +101,8 @@ export function QRCodeGenerator() {
     a.click();
     setTimeout(() => URL.revokeObjectURL(url), 1000);
     
-    // Track download in analytics for premium users
-    if (isPremium) {
-      setAnalytics(prev => ({
-        ...prev,
-        downloaded: prev.downloaded + 1
-      }));
-    }
+    // Track download in analytics
+    updateAnalytics('downloaded');
   };
 
 
@@ -94,13 +120,8 @@ export function QRCodeGenerator() {
                 text: 'Scan this QR code!',
               });
               
-              // Track share in analytics for premium users
-              if (isPremium) {
-                setAnalytics(prev => ({
-                  ...prev,
-                  shared: prev.shared + 1
-                }));
-              }
+              // Track share in analytics
+              updateAnalytics('shared');
             } catch {}
           } else {
             // fallback: download
@@ -124,13 +145,8 @@ export function QRCodeGenerator() {
   const generateSingleQR = (value: string) => {
     setQrValue(value);
     
-    // Track generation in analytics for premium users
-    if (isPremium) {
-      setAnalytics(prev => ({
-        ...prev,
-        generated: prev.generated + 1
-      }));
-    }
+    // Track generation in analytics
+    updateAnalytics('generated');
   };
   
   // Function to handle bulk generation for premium users
@@ -140,53 +156,39 @@ export function QRCodeGenerator() {
     setLoading(true);
     const results: {url: string, dataUrl: string}[] = [];
     
-    // Create a temporary canvas for generating data URLs
-    const tempCanvas = document.createElement('canvas');
-    tempCanvas.width = 256;
-    tempCanvas.height = 256;
-    const ctx = tempCanvas.getContext('2d');
+    // Use QRCode.toDataURL from qrcode.react
+    const QRCode = await import('qrcode');
     
-    // Process each URL
-    for (const url of bulkUrls) {
-      // Create a QR code for this URL
-      const qrCanvas = document.createElement('canvas');
-      const qrCtx = qrCanvas.getContext('2d');
-      if (!qrCtx) continue;
-      
-      // Render QR code to the canvas
-      const qr = new QRCodeSVG({
-        value: url,
-        size: 256,
-        bgColor: bgColor,
-        fgColor: qrColor,
-        level: 'H',
-        imageSettings: customLogo ? {
-          src: customLogo,
-          height: 32,
-          width: 32,
-          excavate: true
-        } : undefined
-      });
-      
-      // Convert SVG to data URL
-      const serializer = new XMLSerializer();
-      const svgString = serializer.serializeToString(qr);
-      const dataUrl = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svgString)}`;
-      
-      results.push({
-        url,
-        dataUrl
-      });
+    // Process each URL (up to 10)
+    const urlsToProcess = bulkUrls.slice(0, 10);
+    
+    for (const url of urlsToProcess) {
+      try {
+        // Generate QR code as data URL
+        const dataUrl = await QRCode.toDataURL(url, {
+          width: 256,
+          margin: 1,
+          color: {
+            dark: fgColor,
+            light: bgColor
+          },
+          errorCorrectionLevel: 'H'
+        });
+        
+        results.push({
+          url,
+          dataUrl
+        });
+      } catch (error) {
+        console.error(`Error generating QR code for ${url}:`, error);
+      }
     }
     
     setGeneratedQRs(results);
     setLoading(false);
     
     // Track bulk generation in analytics
-    setAnalytics(prev => ({
-      ...prev,
-      generated: prev.generated + bulkUrls.length
-    }));
+    updateAnalytics('generated', results.length);
   };
   
   // Main form submission handler
@@ -442,9 +444,7 @@ export function QRCodeGenerator() {
                 fgColor={fgColor}
                 level="H"
                 imageSettings={imageSettings}
-                // Apply QR style based on premium settings
-                renderAs={isPremium && qrStyle === 'dots' ? 'canvas' : 'canvas'}
-                className={`shadow-md rounded-lg border border-[var(--app-card-border)] p-4 ${isPremium && qrStyle === 'rounded' ? 'qr-rounded' : ''}`}
+                className={`shadow-md rounded-lg border border-[var(--app-card-border)] p-4 ${isPremium ? `qr-style-${qrStyle}` : ''}`}
               />
               {/* Hidden SVG for download */}
               <div style={{position: 'absolute', left: '-9999px', top: 0, width: 0, height: 0, overflow: 'hidden'}} aria-hidden="true">
@@ -460,14 +460,32 @@ export function QRCodeGenerator() {
                 />
               </div>
               
-              {/* Add custom styling for dots and rounded QR codes */}
-              {isPremium && qrStyle !== 'squares' && (
+              {/* Add custom styling for premium QR code styles */}
+              {isPremium && (
                 <style jsx global>{`
-                  .qr-rounded path {
+                  /* Rounded style */
+                  .qr-style-rounded canvas {
+                    border-radius: 12px;
+                  }
+                  .qr-style-rounded path {
                     border-radius: 4px;
                   }
-                  canvas {
-                    border-radius: ${qrStyle === 'rounded' ? '12px' : '0px'};
+                  
+                  /* Dots style */
+                  .qr-style-dots canvas {
+                    --qr-module-size: 6px;
+                  }
+                  .qr-style-dots canvas > path {
+                    transform: scale(0.85);
+                    rx: 50%;
+                    ry: 50%;
+                  }
+                  
+                  /* Custom styling for all premium QR codes */
+                  .qr-style-squares canvas,
+                  .qr-style-dots canvas,
+                  .qr-style-rounded canvas {
+                    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.1);
                   }
                 `}</style>
               )}
