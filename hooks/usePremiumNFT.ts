@@ -62,7 +62,7 @@ export function usePremiumNFT() {
   const fetchMintPrice = async () => {
     try {
       // Use a read-only provider first to avoid wallet connection issues
-      const provider = new ethers.JsonRpcProvider('https://base-rpc.publicnode.com');
+      const provider = new ethers.JsonRpcProvider('https://mainnet.base.org');
       const readOnlyContract = new ethers.Contract(CONTRACT_ADDRESS, CONTRACT_ABI, provider);
       
       // Fetch the mint price
@@ -153,7 +153,7 @@ export function usePremiumNFT() {
                     symbol: 'ETH',
                     decimals: 18,
                   },
-                  rpcUrls: ['https://base-rpc.publicnode.com'],
+                  rpcUrls: ['https://mainnet.base.org'],
                   blockExplorerUrls: ['https://basescan.org'],
                 },
               ],

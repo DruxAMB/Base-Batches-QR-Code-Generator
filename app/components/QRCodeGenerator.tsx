@@ -424,7 +424,7 @@ export function QRCodeGenerator() {
           )}
         </Button>
       </motion.form>
-      <div className="flex flex-col items-center mt-6 min-h-[200px]">
+      <div className="flex flex-col items-center mt-6">
         <AnimatePresence>
           {/* Single QR Code Display */}
           {qrValue && !loading && !bulkMode && (
