@@ -30,7 +30,7 @@ export function PremiumFeatures() {
   
   const sendNotification = useNotification();
   
-  // Show notifications for transaction status
+  // Show notifications for transaction status and update premium status
   useEffect(() => {
     if (isPending || isConfirming) {
       sendNotification({
@@ -44,8 +44,20 @@ export function PremiumFeatures() {
         title: "Premium NFT Minted",
         body: "Your premium access is now active for 14 days"
       });
-      // Refresh premium status
+      
+      // Refresh premium status immediately and then again after a delay
+      // to ensure the blockchain state is properly reflected
       checkPremiumStatus();
+      
+      // Set up multiple checks to ensure we catch the updated state
+      const checkIntervals = [1000, 3000, 6000, 10000]; // Check at 1s, 3s, 6s, and 10s
+      
+      checkIntervals.forEach(delay => {
+        setTimeout(() => {
+          console.log(`Checking premium status after ${delay}ms`);
+          checkPremiumStatus();
+        }, delay);
+      });
     }
     
     if (error) {
@@ -56,6 +68,20 @@ export function PremiumFeatures() {
       console.error("Mint error:", error);
     }
   }, [isPending, isConfirming, isConfirmed, error, transactionHash, sendNotification, checkPremiumStatus]);
+  
+  // Force a refresh of premium status every 5 seconds when a transaction is confirmed
+  // This ensures the UI updates even if there are caching issues
+  useEffect(() => {
+    if (isConfirmed && transactionHash) {
+      const intervalId = setInterval(() => {
+        console.log("Periodic premium status check");
+        checkPremiumStatus();
+      }, 5000);
+      
+      // Clean up the interval when component unmounts or transaction hash changes
+      return () => clearInterval(intervalId);
+    }
+  }, [isConfirmed, transactionHash, checkPremiumStatus]);
 
   // Premium features UI
   if (isPremium) {

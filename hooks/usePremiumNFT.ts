@@ -92,17 +92,44 @@ export function usePremiumNFT() {
     }
   };
   
-  // Check premium status
+  // Check premium status with fallback to read-only provider
   const checkPremiumStatus = async () => {
     if (!address) return;
     
+    console.log("Checking premium status for address:", address);
+    
     try {
-      const contract = await getContract();
-      if (!contract) return;
+      // First try with connected wallet
+      let contract = await getContract();
+      
+      // If no contract from connected wallet, use read-only provider as fallback
+      if (!contract) {
+        console.log("Using read-only provider for premium check");
+        try {
+          // Try multiple endpoints in case one fails
+          let provider;
+          try {
+            provider = new ethers.JsonRpcProvider('https://base-rpc.publicnode.com');
+          } catch (e) {
+            provider = new ethers.JsonRpcProvider('https://mainnet.base.org');
+          }
+          
+          contract = new ethers.Contract(CONTRACT_ADDRESS, CONTRACT_ABI, provider);
+        } catch (providerError) {
+          console.error("Error creating read-only provider:", providerError);
+          return;
+        }
+      }
       
       // Check if user has active premium
       const hasPremium = await contract.hasActivePremium(address);
-      setIsPremium(hasPremium);
+      console.log("Premium status check result:", hasPremium);
+      
+      // Only update state if the value has changed to avoid unnecessary re-renders
+      if (isPremium !== hasPremium) {
+        console.log("Updating premium status to:", hasPremium);
+        setIsPremium(hasPremium);
+      }
       
       if (hasPremium) {
         // Get expiry time
@@ -116,6 +143,8 @@ export function usePremiumNFT() {
         const remainingMs = expiryTimeMs - now;
         const days = Math.max(0, Math.ceil(remainingMs / (1000 * 60 * 60 * 24)));
         setDaysRemaining(days);
+        
+        console.log(`Premium active until ${expiry.toLocaleString()}, ${days} days remaining`);
       } else {
         setExpiryDate(null);
         setDaysRemaining(null);
