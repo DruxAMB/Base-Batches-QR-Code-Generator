@@ -5,9 +5,8 @@ import { base } from "wagmi/chains";
 import { MiniKitProvider } from "@coinbase/onchainkit/minikit";
 import { ThemeProvider } from "next-themes";
 
-// Note: We're using the existing MiniKitProvider from @coinbase/onchainkit/minikit
-// which already includes the necessary wagmi configuration.
-// Our custom usePremiumNFT hook will work with this provider.
+// Using the standard MiniKit provider which works with Warpcast
+// MiniKit already has built-in support for Warpcast
 
 export function Providers(props: { children: ReactNode }) {
   return (
@@ -20,7 +19,7 @@ export function Providers(props: { children: ReactNode }) {
           theme: "mini-app-theme",
           name: process.env.NEXT_PUBLIC_ONCHAINKIT_PROJECT_NAME || "Instant QR",
           logo: process.env.NEXT_PUBLIC_ICON_URL,
-        },
+        }
       }}
     >
       <ThemeProvider

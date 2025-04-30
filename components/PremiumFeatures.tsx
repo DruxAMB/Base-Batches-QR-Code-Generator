@@ -103,12 +103,13 @@ export function PremiumFeatures() {
         </div>
       ) : isWrongNetwork ? (
         <div className="flex flex-col items-center gap-3">
-          <p className="text-sm text-amber-500 font-medium">Please switch to Base mainnet network</p>
+          <p className="text-sm text-amber-500 font-medium">This app requires Base mainnet network</p>
+          <p className="text-xs text-gray-500">Warpcast should automatically use Base mainnet</p>
           <Button 
             onClick={handleMint} 
             className="bg-amber-500 hover:bg-amber-600 text-white"
           >
-            Switch Network
+            Try Again
           </Button>
         </div>
       ) : (
