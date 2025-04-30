@@ -9,6 +9,9 @@ contract InstantQRPremium is ERC721URIStorage, Ownable {
     uint256 public mintPrice = 0.01 ether; // Can be adjusted by owner
     uint256 public constant PREMIUM_DURATION = 14 days;
     
+    // Default token URI with the provided image
+    string public defaultTokenURI = "https://peach-obvious-bobcat-804.mypinata.cloud/ipfs/bafkreiddgvuv6axhgcb5mfe3m5bbk2n2e3jlc6a4zvt4lusl4ops2nupny";
+    
     // Map tokenId to mint timestamp
     mapping(uint256 => uint256) public mintTimestamp;
     
@@ -27,7 +30,10 @@ contract InstantQRPremium is ERC721URIStorage, Ownable {
         
         uint256 newTokenId = tokenCounter;
         _safeMint(msg.sender, newTokenId);
-        _setTokenURI(newTokenId, tokenURI);
+        
+        // Use provided tokenURI if not empty, otherwise use default
+        string memory finalURI = bytes(tokenURI).length > 0 ? tokenURI : defaultTokenURI;
+        _setTokenURI(newTokenId, finalURI);
         
         // Record mint timestamp
         mintTimestamp[newTokenId] = block.timestamp;
