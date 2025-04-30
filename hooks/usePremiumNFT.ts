@@ -308,6 +308,7 @@ export function usePremiumNFT() {
     isMinting,
     mintSuccess,
     openConnectModal,
-    isWrongNetwork
+    isWrongNetwork,
+    checkPremiumStatus // Expose this function so it can be called from components
   };
 }

@@ -1,23 +1,62 @@
 "use client";
 
-import React from 'react';
+import React, { useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Button } from "@/components/ui/button";
 import { usePremiumNFT } from '@/hooks/usePremiumNFT';
+import { useFarcasterWallet } from '@/hooks/useFarcasterWallet';
+import { useNotification } from '@coinbase/onchainkit/minikit';
 
 export function PremiumFeatures() {
+  // Use both hooks - the original one for premium status and the Farcaster one for wallet interactions
   const { 
-    isConnected, 
     isPremium, 
     expiryDate, 
     daysRemaining, 
-    mintPrice, 
-    handleMint, 
-    isMinting,
-    mintSuccess,
-    openConnectModal,
-    isWrongNetwork
+    mintPrice: originalMintPrice,
+    checkPremiumStatus
   } = usePremiumNFT();
+  
+  // Use the Farcaster wallet integration for minting
+  const {
+    isConnected,
+    mintPremium,
+    isPending,
+    isConfirming,
+    isConfirmed,
+    error,
+    mintPrice: farcasterMintPrice,
+    transactionHash
+  } = useFarcasterWallet();
+  
+  const sendNotification = useNotification();
+  
+  // Show notifications for transaction status
+  useEffect(() => {
+    if (isPending || isConfirming) {
+      sendNotification({
+        title: "Transaction Processing",
+        body: "Your premium NFT is being minted"
+      });
+    }
+    
+    if (isConfirmed && transactionHash) {
+      sendNotification({
+        title: "Premium NFT Minted",
+        body: "Your premium access is now active for 14 days"
+      });
+      // Refresh premium status
+      checkPremiumStatus();
+    }
+    
+    if (error) {
+      sendNotification({
+        title: "Mint Failed",
+        body: "There was an error minting your premium NFT"
+      });
+      console.error("Mint error:", error);
+    }
+  }, [isPending, isConfirming, isConfirmed, error, transactionHash, sendNotification, checkPremiumStatus]);
 
   // Premium features UI
   if (isPremium) {
@@ -95,34 +134,47 @@ export function PremiumFeatures() {
         <div className="flex flex-col items-center gap-3">
           <p className="text-sm">Connect your wallet to get started</p>
           <Button 
-            onClick={openConnectModal}
+            onClick={mintPremium} // This will trigger connect if not connected
             className="bg-[var(--app-accent)] hover:bg-[var(--app-accent-hover)] text-white"
           >
             Connect Wallet
           </Button>
         </div>
-      ) : isWrongNetwork ? (
-        <div className="flex flex-col items-center gap-3">
-          <p className="text-sm text-amber-500 font-medium">This app requires Base mainnet network</p>
-          <p className="text-xs text-gray-500">Warpcast should automatically use Base mainnet</p>
-          <Button 
-            onClick={handleMint} 
-            className="bg-amber-500 hover:bg-amber-600 text-white"
-          >
-            Try Again
-          </Button>
-        </div>
       ) : (
-        <Button 
-          onClick={handleMint} 
-          disabled={isMinting}
-          className="bg-[var(--app-accent)] hover:bg-[var(--app-accent-hover)] text-white"
-        >
-          {isMinting ? "Minting..." : `Go Pro (${mintPrice} ETH)`}
-        </Button>
+        <div className="flex flex-col items-center gap-3">
+          <p className="text-sm">
+            {isPending || isConfirming ? "Minting in progress..." : 
+             isConfirmed ? "Mint successful! Refreshing status..." : 
+             `Mint price: ${farcasterMintPrice} ETH`}
+          </p>
+          {error && (
+            <p className="text-xs text-red-500 max-w-xs">
+              There was an error with your transaction. Please try again.
+            </p>
+          )}
+          <Button 
+            onClick={mintPremium}
+            disabled={isPending || isConfirming}
+            className="bg-[var(--app-accent)] hover:bg-[var(--app-accent-hover)] text-white"
+          >
+            {isPending ? "Minting..." : 
+             isConfirming ? "Confirming..." :
+             isConfirmed ? "Minted!" : 
+             "Mint Premium NFT"}
+          </Button>
+          {transactionHash && (
+            <a 
+              href={`https://basescan.org/tx/${transactionHash}`} 
+              target="_blank" 
+              rel="noopener noreferrer"
+              className="text-xs text-blue-500 hover:underline"
+            >
+              View transaction
+            </a>
+          )}
+        </div>
       )}
-      
-      {mintSuccess && (
+      {isConfirmed && (
         <p className="text-green-500 mt-2 text-sm">
           Success! Your premium access is now active.
         </p>
