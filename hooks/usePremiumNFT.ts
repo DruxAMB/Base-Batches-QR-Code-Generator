@@ -33,15 +33,25 @@ export function usePremiumNFT() {
   const sendNotification = useNotification();
   
   // Function to get contract instance
-  const getContract = () => {
+  const getContract = async () => {
     if (typeof window === 'undefined') return null;
     
     try {
-      // Create provider and signer
+      // Check if we're on the correct network (Base mainnet)
       const provider = new ethers.BrowserProvider(window.ethereum);
-      return provider.getSigner().then(signer => {
-        return new ethers.Contract(CONTRACT_ADDRESS, CONTRACT_ABI, signer);
-      });
+      const network = await provider.getNetwork();
+      const chainId = network.chainId;
+      
+      // Base mainnet chainId is 8453 (0x2105)
+      if (chainId.toString() !== '8453') {
+        console.log(`Wrong network detected: ${chainId}. Expected: 8453 (Base mainnet)`);
+        setIsWrongNetwork(true);
+        return null;
+      }
+      
+      setIsWrongNetwork(false);
+      const signer = await provider.getSigner();
+      return new ethers.Contract(CONTRACT_ADDRESS, CONTRACT_ABI, signer);
     } catch (error) {
       console.error("Error getting contract:", error);
       return null;
@@ -108,22 +118,22 @@ export function usePremiumNFT() {
     }
   };
   
-  // Function to check if connected to Base Sepolia
+  // Function to check if connected to Base mainnet
   const checkAndSwitchNetwork = async () => {
     if (!window.ethereum) return false;
     
     const chainId = window.ethereum.chainId;
     console.log("Current chainId:", chainId);
     
-    // Base Sepolia chainId is 0x14a34 (hex) or 84532 (decimal)
-    if (chainId !== '0x14a34') {
+    // Base mainnet chainId is 0x2105 (hex) or 8453 (decimal)
+    if (chainId !== '0x2105') {
       setIsWrongNetwork(true);
       
       try {
         // Request network switch
         await window.ethereum.request({
           method: 'wallet_switchEthereumChain',
-          params: [{ chainId: '0x14a34' }],
+          params: [{ chainId: '0x2105' }],
         });
         
         setIsWrongNetwork(false);
@@ -136,15 +146,15 @@ export function usePremiumNFT() {
               method: 'wallet_addEthereumChain',
               params: [
                 {
-                  chainId: '0x14a34',
-                  chainName: 'Base Sepolia',
+                  chainId: '0x2105',
+                  chainName: 'Base',
                   nativeCurrency: {
                     name: 'ETH',
                     symbol: 'ETH',
                     decimals: 18,
                   },
-                  rpcUrls: ['https://sepolia.base.org'],
-                  blockExplorerUrls: ['https://sepolia.basescan.org'],
+                  rpcUrls: ['https://mainnet.base.org'],
+                  blockExplorerUrls: ['https://basescan.org'],
                 },
               ],
             });
@@ -168,16 +178,12 @@ export function usePremiumNFT() {
   // Handle mint with metadata
   const handleMint = async () => {
     if (!isConnected) {
-      openConnectModal();
-      return;
-    }
-    
-    // Check if on correct network first
-    const isCorrectNetwork = await checkAndSwitchNetwork();
-    if (!isCorrectNetwork) {
+      // Connect wallet first
+      const connector = connectors[0];
+      connect({ connector });
       sendNotification({
-        title: "Wrong Network",
-        body: "Please switch to Base Sepolia network to mint"
+        title: "Connect Wallet",
+        body: "Please connect your wallet to mint a premium NFT"
       });
       return;
     }
@@ -186,70 +192,79 @@ export function usePremiumNFT() {
     setMintSuccess(false);
     
     try {
-      // Debug wallet info
-      console.log("Wallet address:", address);
-      console.log("Connected to network:", window.ethereum?.chainId);
+      // Check if we're on the right network
+      if (typeof window !== 'undefined' && window.ethereum) {
+        const provider = new ethers.BrowserProvider(window.ethereum);
+        const network = await provider.getNetwork();
+        const chainId = network.chainId;
+        
+        console.log("Current chainId:", chainId.toString(16));
+        
+        // Base mainnet chainId is 8453 (0x2105)
+        if (chainId.toString() !== '8453') {
+          // Wrong network, prompt to switch
+          try {
+            await window.ethereum.request({
+              method: 'wallet_switchEthereumChain',
+              params: [{ chainId: '0x2105' }], // Base mainnet
+            });
+            // Wait a moment for the network switch to take effect
+            await new Promise(resolve => setTimeout(resolve, 1000));
+          } catch (switchError) {
+            console.error("Error switching network:", switchError);
+            sendNotification({
+              title: "Wrong Network",
+              body: "Please switch to Base mainnet to mint"
+            });
+            setIsMinting(false);
+            return;
+          }
+        }
+      }
       
+      // Get contract with fresh connection after network check
       const contract = await getContract();
-      if (!contract) throw new Error("Contract not available");
+      if (!contract) {
+        throw new Error("Contract not available. Please ensure you're connected to Base mainnet.");
+      }
       
       console.log("Contract address:", CONTRACT_ADDRESS);
       
-      // Simple metadata for the NFT
-      const tokenURI = JSON.stringify({
-        name: "Instant QR Premium Access",
-        description: "This NFT grants premium access to Instant QR for 14 days",
-        image: "https://instantqr.app/premium-nft.png"
-      });
+      // Use empty string to use the default token URI from the contract
+      const tokenURI = "";
       
+      // Get mint price from contract
+      let price;
       try {
-        // Check if contract exists
-        const name = await contract.name();
-        console.log("Contract name:", name);
-        
-        // Get mint price from contract
-        const price = await contract.mintPrice();
+        price = await contract.mintPrice();
         console.log("Mint price:", ethers.formatEther(price), "ETH");
-        
-        // Get wallet balance
-        const provider = new ethers.BrowserProvider(window.ethereum);
-        if (address) {
-          const balance = await provider.getBalance(address);
-          console.log("Wallet balance:", ethers.formatEther(balance), "ETH");
-        }
-        
-        // Execute the mint transaction with explicit gas parameters
-        console.log("Attempting to mint with value:", ethers.formatEther(price), "ETH");
-        
-        try {
-          // Create transaction with explicit gas parameters
-          const gasLimit = 500000; // Explicit gas limit
-          console.log("Using gas limit:", gasLimit);
-          
-          // Call the contract method directly with gas parameters
-          const tx = await contract.mintPremium(tokenURI, { 
-            value: price,
-            gasLimit: gasLimit
-          });
-          
-          console.log("Transaction sent:", tx.hash);
-          const receipt = await tx.wait();
-          console.log("Transaction confirmed, gas used:", receipt.gasUsed.toString());
-        } catch (txError: any) { // Use any type for error handling
-          console.error("Transaction error details:", txError);
-          // Try to extract more specific error information
-          if (txError?.reason) console.error("Error reason:", txError.reason);
-          if (txError?.code) console.error("Error code:", txError.code);
-          if (txError?.error) console.error("Inner error:", txError.error);
-          throw txError;
-        }
-      } catch (innerError) {
-        console.error("Contract interaction error:", innerError);
-        throw innerError;
+      } catch (priceError) {
+        console.error("Error fetching mint price:", priceError);
+        // Use default price if contract call fails
+        price = ethers.parseEther("0.001");
+        console.log("Using default mint price:", ethers.formatEther(price), "ETH");
       }
       
-      // Transaction successful
+      // Execute the mint transaction with explicit gas parameters
+      const tx = await contract.mintPremium(tokenURI, {
+        value: price,
+        gasLimit: 500000
+      });
+      
+      console.log("Transaction sent:", tx.hash);
+      sendNotification({
+        title: "Transaction Sent",
+        body: "Your premium NFT is being minted"
+      });
+      
+      // Wait for transaction to be mined
+      const receipt = await tx.wait();
+      console.log("Transaction confirmed:", receipt);
+      
+      // Update premium status
       setMintSuccess(true);
+      
+      // Send success notification
       sendNotification({
         title: "Premium NFT Minted",
         body: "Your premium access is now active for 14 days"

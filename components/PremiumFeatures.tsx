@@ -103,7 +103,7 @@ export function PremiumFeatures() {
         </div>
       ) : isWrongNetwork ? (
         <div className="flex flex-col items-center gap-3">
-          <p className="text-sm text-amber-500 font-medium">Please switch to Base Sepolia network</p>
+          <p className="text-sm text-amber-500 font-medium">Please switch to Base mainnet network</p>
           <Button 
             onClick={handleMint} 
             className="bg-amber-500 hover:bg-amber-600 text-white"
